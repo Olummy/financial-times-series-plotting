@@ -1,0 +1,147 @@
+---
+title: "Financial Time Series Plotting"
+author: "Olumide Michael Oyalola"
+date: "September 21, 2018"
+output: 
+  html_document: 
+    fig_caption: yes
+    toc: yes
+    number_sections: false
+    toc_depth: 4
+    fig.retina: 4
+    fig.caption: true
+    fig.width: 12
+    fig.height: 7
+    code_folding: show
+    df_print: paged
+    toc_float: 
+      collapsed:  false
+      smooth_scroll: false
+  github_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+### Loading the required libraries
+
+```{r packages}
+
+library(tidyverse)
+library(zoo)
+library(xts)
+library(highcharter)
+library(lubridate)
+library(dygraphs)
+```
+
+
+### Reading the required datasets
+
+```{r readdata}
+
+eur_gbp_hist_df <- read_csv("EUR_GBP Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+eur_usd_hist_df <- read_csv("EUR_USD Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+gbp_usd_hist_df <- read_csv("GBP_USD Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+germany_5yr_bond_yield_df <- read_csv("Germany 5-Year Bond Yield Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+uk_5yr_bond_yield_df <- read_csv("United Kingdom 5-Year Bond Yield Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+usa_5yr_bond_yield_df <- read_csv("United States 5-Year Bond Yield Historical Data.csv", col_names = TRUE, trim_ws = TRUE) %>%
+  mutate(Date = as.Date(as.yearmon(Date, format = "%b %y")))
+
+```
+
+### Data Prepping
+
+#### Computing the monthly prices of spread between countries
+
+```{r spread}
+
+eur_gbp_spread_df <- germany_5yr_bond_yield_df %>%
+  inner_join(uk_5yr_bond_yield_df, by = "Date") %>%
+  mutate(Ratio = Price.x/Price.y) %>%
+  select(Date, Ratio)
+
+eur_usd_spread_df <- germany_5yr_bond_yield_df %>%
+  inner_join(usa_5yr_bond_yield_df, by = "Date") %>%
+  mutate(Ratio = Price.x/Price.y) %>%
+  select(Date, Ratio)
+
+gbp_usd_spread_df <- uk_5yr_bond_yield_df %>%
+  inner_join(usa_5yr_bond_yield_df, by = "Date") %>%
+  mutate(Ratio = Price.x/Price.y) %>%
+  select(Date, Ratio)
+
+```
+
+
+#### Merging the Spread between countries and the corresponding nominal historical exchange rate
+
+```{r mergeSpreadandExchange}
+
+eur_gbp_compare <- eur_gbp_hist_df %>% select(Date, Price) %>%
+  inner_join(eur_gbp_spread_df, by = "Date") %>%
+  select(-Date) %>%
+  ts(start = c(1987, 7), frequency = 12)
+
+eur_usd_compare <- eur_usd_hist_df %>% select(Date, Price) %>%
+  inner_join(eur_usd_spread_df, by = "Date") %>%
+  select(-Date) %>%
+  ts(start = c(1987, 7), frequency = 12)
+
+gbp_usd_compare <- gbp_usd_hist_df %>% select(Date, Price) %>%
+  inner_join(gbp_usd_spread_df, by = "Date") %>%
+  select(-Date) %>%
+  ts(start = c(1987, 7), frequency = 12)
+
+```
+
+### Visualizations
+
+### EUR_GBP spread and Nominal Exchange Rate Series
+
+```{r eur_gbp_compare, fig.height=6, fig.width=10}
+
+dygraph(eur_gbp_compare) %>%
+  dySeries("Price", label = "Ex Rate") %>%
+  dySeries("Ratio", label = "Spread") %>%
+  dyOptions(stackedGraph = TRUE) %>%
+  dyRangeSelector(height = 30)
+
+```
+
+
+### EUR_USD spread and Nominal Exchange Rate Series
+
+```{r eur_usd_compare, fig.height=6, fig.width=10}
+
+dygraph(eur_usd_compare) %>%
+  dySeries("Price", label = "Ex Rate") %>%
+  dySeries("Ratio", label = "Spread") %>%
+  dyOptions(stackedGraph = TRUE) %>%
+  dyRangeSelector(height = 30)
+
+```
+
+
+### GBP_USD spread and Nominal Exchange Rate Series
+
+```{r gbp_usd_compare, fig.height=6, fig.width=10}
+
+dygraph(gbp_usd_compare) %>%
+  dySeries("Price", label = "Ex Rate") %>%
+  dySeries("Ratio", label = "Spread") %>%
+  dyOptions(stackedGraph = TRUE) %>%
+  dyRangeSelector(height = 30)
+
+```
