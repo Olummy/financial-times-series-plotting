@@ -17,7 +17,6 @@ output:
     toc_float: 
       collapsed:  false
       smooth_scroll: false
-  github_document: default
 ---
 
 ```{r setup, include=FALSE}
